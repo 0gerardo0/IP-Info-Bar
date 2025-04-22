@@ -1,7 +1,7 @@
 {
   "uuid": "ip-info-bar@gerardo.github.io",
   "name": "IP Info Bar",
-  "description": "Displays various IP addresses in the GNOME pannel.",
+  "description": "Introduces a GNOME extension that displays various IP addresses(LAN IPv4, WAN IPv4, LAN IPv6, VPN IPv4) in the panel. The extension fetches IP data using a Python backend script and cycles through the different IP types on button press.",
   "version": "1.0",
   "shell-version": ["45", "46", "47", "48"],
   "dependencies": ["python"],
