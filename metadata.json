@@ -5,7 +5,7 @@
   "version": "1.0",
   "shell-version": ["45", "46", "47", "48"],
   "dependencies": ["python"],
-  "author": "Gerardo Zúñiga",
+  "author": "Gerardo",
   "js-main": "extension.js",
   "python-backend": "backend/utils.py"
 }
