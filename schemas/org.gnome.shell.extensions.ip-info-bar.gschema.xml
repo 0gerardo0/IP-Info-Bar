@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+    <schema id="org.gnome.shell.extensions.ip-info-bar" path="/org/gnome/shell/extensions/ip-info-bar/">
+        <key name="show-ipv4" type="b">
+            <default>true</default>
+            <summary>Mostrar IPv4</summary>
+            <description>Muestra la dirección IPv4 en la barra de estado</description>
+        </key>
+        <key name="show-ipv6" type="b">
+            <default>true</default>
+            <summary>Mostrar IPv6</summary>
+            <description>Muestra la dirección IPv6 en la barra de estado</description>
+        </key>
+        <key name="show-ssh" type="b">
+            <default>true</default>
+            <summary>Mostrar SSH</summary>
+            <description>Muestra información de conexiones SSH en la barra de estado</description>
+        </key>
+    </schema>
+</schemalist> 
