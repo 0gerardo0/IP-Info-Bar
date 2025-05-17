@@ -29,6 +29,18 @@ def get_lan_ip4():
     except Exception:
         return ""
 
+def get_real_lan_ip4():
+    """
+    Obtiene la IP LAN IPv4 real de la interfaz física (excluye tun0 y lo).
+    """
+    try:
+        cmd = "ip -4 addr show scope global | grep -Ev ' lo | tun0 '"
+        output = subprocess.check_output(cmd, shell=True, text=True)
+        match = re.search(r"inet (\d+\.\d+\.\d+\.\d+)", output)
+        return match.group(1) if match else ""
+    except Exception:
+        return ""
+
 def get_lan_ip6():
     """
     Retorna la IP LAN IPv6 real de la ruta por defecto.
@@ -37,6 +49,18 @@ def get_lan_ip6():
     try:
         output = subprocess.check_output("ip -6 route get 2001:: | awk '{print $11}'", shell=True, text=True)
         match = re.search(r"([a-fA-F0-9:]+)", output)
+        return match.group(1) if match else ""
+    except Exception:
+        return ""
+
+def get_real_lan_ip6():
+    """
+    Obtiene la IP LAN IPv6 real de la interfaz física (excluye tun0 y lo).
+    """
+    try:
+        cmd = "ip -6 addr show scope global | grep -Ev ' lo | tun0 '"
+        output = subprocess.check_output(cmd, shell=True, text=True)
+        match = re.search(r"inet6 ([a-fA-F0-9:]+)", output)
         return match.group(1) if match else ""
     except Exception:
         return ""
@@ -126,10 +150,15 @@ if __name__ == "__main__":
         result = {
             "tun0_vpn": get_tun0_vpn(),
             "lan_ip4": get_lan_ip4(),
+            "real_lan_ip4": get_real_lan_ip4(),
             "lan_ip6": get_lan_ip6(),
+            "real_lan_ip6": get_real_lan_ip6(),
             "wan_ip4": get_wan_ip4(),
             "detect_vpn": detect_vpn(),
-            "remote_ssh": active_ssh_session_remote()
+            "remote_ssh": active_ssh_session_remote(),
+            "incoming_ssh": active_ssh_incoming_session(),
+            "has_remote_ssh": boolean_ssh_active_remote(),
+            "has_incoming_ssh": boolean_ssh_incoming_session()
         }
         print(json.dumps(result))
         sys.stdout.flush()
