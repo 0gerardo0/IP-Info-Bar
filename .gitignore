@@ -1,0 +1,59 @@
+# GNOME Shell / GJS
+schemas/gschemas.compiled
+*.zip
+*.bak
+*.swp
+*.log
+*.lock
+
+# Archivos personales o del sistema
+.DS_Store
+Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn.lock
+package-lock.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-log.txt
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.env
+.env
+.venv/
+venv/
+ENV/
+env/
+
+# Archivos de test temporales
+.coverage
+.tox/
+.nox/
+pytest_cache/
+.cache/
+
+# Git internals 
+.git/
+
+# Empaquetado
+*.tar.gz
+*.tar.bz2
+*.tar
+*.gz
+*.7z
+*.rar
+
+# Backup de editores
+*~
