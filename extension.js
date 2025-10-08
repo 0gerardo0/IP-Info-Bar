@@ -104,34 +104,57 @@ export default class IPInfoExtension extends Extension {
         }
     }
 
+
     async _updateLabel() {
-        const data = await this._fetchIPDataAsync();
-        console.log(`[IP Debug] Data received: ${JSON.stringify(data)}`);
+        try {
+            
+            const data = await this._fetchIPDataAsync();
+            
+            if (!data) {
+                this._button.label.text = 'Error';
+                return;
+            }
 
-        if (!data) {
-            this._button.label.text = 'Error';
-            return;
+            const labels = [];
+
+            if (data.lan_ip4) {
+                labels.push(data.lan_ip4);
+            }
+            if (data.wan_ip4) {
+                labels.push(`WAN: ${data.wan_ip4}`);
+            }
+            if (data.lan_ip6) {
+                labels.push(`IPv6: ${data.lan_ip6}`);
+            }
+            if (data.tun0_vpn) {
+                labels.push(`VPN: ${data.tun0_vpn}`);
+            }
+
+            if (data.has_remote_ssh || data.has_incoming_ssh) {
+                if (data.has_remote_ssh && data.has_incoming_ssh) {
+                    labels.push('SSH: Múltiple');
+                } else if (data.has_remote_ssh) {
+                    labels.push('SSH: Saliente');
+                } else {
+                    labels.push('SSH: Entrante');
+                }
+            }
+            
+            if (labels.length === 0) {
+                this._button.label.text = 'Sin conexión';
+                return;
+            }
+            
+            if (this._currentType >= labels.length) {
+                this._currentType = 0;
+            }
+
+            this._button.label.text = labels[this._currentType];
+
+        } catch (e) {
+            console.error(`[IP-Info-Bar] Error al actualizar la etiqueta: ${e}`);
+            this._button.label.text = 'Error!';
         }
-
-        let label;
-        switch (this._currentType) {
-            case 0:
-                label = data.lan_ip4 || 'Sin LAN IPv4';
-                break;
-            case 1:
-                label = data.wan_ip4 || 'Sin WAN IPv4';
-                break;
-            case 2:
-                label = data.lan_ip6 || 'Sin IPv6';
-                break;
-            case 3:
-                label = data.tun0_vpn || 'Sin VPN';
-                break;
-            default:
-                label = 'Modo Inválido';
-        }
-
-        this._button.label.text = label.substring(0, 50);
     }
 
     _createButton() {
@@ -142,17 +165,30 @@ export default class IPInfoExtension extends Extension {
         });
         this._button.add_child(label);
         this._button.label = label;
-        this._button.connect('button-press-event', () => {
-            this._currentType = (this._currentType + 1) % 4;
-            this._updateLabel();
-        });
         return this._button;
     }
 
     enable() {
         this._button = this._createButton();
         Main.panel.addToStatusArea(this.uuid, this._button);
+        
+        this._button.connect('button-press-event', () => {
+          const data = this._cache.data;
+          if (data) {
+            let numModes = 0;
+            if (data.lan_ip4) numModes++;
+            if (data.wan_ip4) numModes++;
+            if (data.lan_ip6) numModes++;
+            if (data.tun0_vpn) numModes++;
+            if (data.has_remote_ssh || data.has_incoming_ssh) numModes++;
 
+            if (numModes > 0) {
+              this._currentType = (this._currentType + 1) % numModes;
+            }
+          }
+          this._updateLabel();
+        });
+        
         this._timeoutId = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,
             15,
