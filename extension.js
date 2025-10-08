@@ -117,17 +117,17 @@ export default class IPInfoExtension extends Extension {
 
             const labels = [];
 
-            if (data.lan_ip4) {
-                labels.push(data.lan_ip4);
+            if (data.lan_ip4 && data.lan_ip4.address) {
+                labels.push(data.lan_ip4.address);
             }
             if (data.wan_ip4) {
                 labels.push(`WAN: ${data.wan_ip4}`);
             }
-            if (data.lan_ip6) {
-                labels.push(`IPv6: ${data.lan_ip6}`);
+            if (data.lan_ip6 && data.lan_ip6.address) {
+                labels.push(`IPv6: ${data.lan_ip6.address}`);
             }
-            if (data.tun0_vpn) {
-                labels.push(`VPN: ${data.tun0_vpn}`);
+            if (data.tun0_vpn && data.tun0_vpn.address) {
+                labels.push(`VPN: ${data.tun0_vpn.address}`);
             }
 
             if (data.has_remote_ssh || data.has_incoming_ssh) {
