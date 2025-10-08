@@ -30,8 +30,14 @@ export default class IPInfoExtension extends Extension {
 
         try {
             const pythonPath = this._getPythonScript();
-            const pythonExec = '/usr/bin/python3';
-            const argv = [pythonExec, pythonPath];
+            const pythonExec = GLib.find_program_in_path('python3');
+            
+            if (!pythonExec) {
+              console.error('[ERROR] El ejecutable de python3 no se encontro en el path');
+              return null;
+            }          
+
+            const argv = [pythonExec, pythonPath]
 
             const [success, pid, stdinFd, stdoutFd] = GLib.spawn_async_with_pipes(
                 null,
@@ -69,6 +75,12 @@ export default class IPInfoExtension extends Extension {
 
                         try {
                             const json = JSON.parse(output);
+                            if (json.error){
+                              console.error('[ERROR] El script de Python dvolvio un error: ${json.error}');
+                              resolve(null);
+                              return;
+                              
+                            }
                             resolve(json);
                         } catch (parseError) {
                             console.error('[ERROR] Fallo al parsear JSON:', parseError.message);

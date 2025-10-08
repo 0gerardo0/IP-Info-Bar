@@ -1,164 +1,79 @@
 #!/usr/bin/env python3
-import subprocess
 import json
-import re
 import sys
 import os
+import urllib.request
+import socket
 
-def get_tun0_vpn():
-    """
-    Retorna la IP IPv4 de tun0 si existe.
-    Útil para saber la IP de tu VPN.
-    """
-    try:
-        output = subprocess.check_output("ip -4 addr show dev tun0 2>/dev/null", shell=True, text=True)
-        match = re.search(r"inet (\d+\.\d+\.\d+\.\d+)", output)
-        return match.group(1) if match else ""
-    except Exception:
-        return ""
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
+try:
+    import psutil
+except ImportError:
+    print(json.dumps({"error": "La libreria psutilno fue encontrada."}))
+    sys.exit(1)
 
-def get_lan_ip4():
+def get_network_info():
     """
-    Retorna la IP LAN IPv4 real de la ruta por defecto.
-    Usa `ip route get 1.1.1.1` para detectar la interfaz.
+    Obtiene todas las IPs (IPv4, IPv6, VPN) usando psutil.
     """
-    try:
-        output = subprocess.check_output("ip -4 route get 1.1.1.1 | awk '{print $7}'", shell=True, text=True).strip()
-        match = re.search(r"(\d+\.\d+\.\d+\.\d+)", output)
-        return match.group(1) if match else ""
-    except Exception:
-        return ""
+    interfaces = psutil.net_if_addrs()
+    info = {
+        "tun0_vpn": "",
+        "lan_ip4": "",
+        "lan_ip6": ""
+    }
+    
+    if "tun0" in interfaces:
+        for addr in interfaces["tun0"]:
+            if addr.family == socket.AF_INET:
+                info ["tun0_vpn"] = addr.address
+                break
 
-def get_real_lan_ip4():
-    """
-    Obtiene la IP LAN IPv4 real de la interfaz física (excluye tun0 y lo).
-    """
-    try:
-        cmd = "ip -4 addr show scope global | grep -Ev ' lo | tun0 '"
-        output = subprocess.check_output(cmd, shell=True, text=True)
-        match = re.search(r"inet (\d+\.\d+\.\d+\.\d+)", output)
-        return match.group(1) if match else ""
-    except Exception:
-        return ""
-
-def get_lan_ip6():
-    """
-    Retorna la IP LAN IPv6 real de la ruta por defecto.
-    Usa `ip -6 route get 2001::` para detectar la interfaz IPv6.
-    """
-    try:
-        output = subprocess.check_output("ip -6 route get 2001:: | awk '{print $11}'", shell=True, text=True)
-        match = re.search(r"([a-fA-F0-9:]+)", output)
-        return match.group(1) if match else ""
-    except Exception:
-        return ""
-
-def get_real_lan_ip6():
-    """
-    Obtiene la IP LAN IPv6 real de la interfaz física (excluye tun0 y lo).
-    """
-    try:
-        cmd = "ip -6 addr show scope global | grep -Ev ' lo | tun0 '"
-        output = subprocess.check_output(cmd, shell=True, text=True)
-        match = re.search(r"inet6 ([a-fA-F0-9:]+)", output)
-        return match.group(1) if match else ""
-    except Exception:
-        return ""
+    for iface_name, addrs in interfaces.items():
+        if iface_name.startswith('lo') or iface_name == 'tun0':
+            continue
+        
+        for addr in addrs:
+            if addr.family == socket.AF_INET and not info["lan_ip4"]:
+                info["lan_ip4"] = addr.address
+            elif addr.family == socket.AF_INET6 and not addr.address.startswith('fe80') and not info["lan_ip6"]:
+                info["lan_ip6"] = addr.address
+    return info
 
 def get_wan_ip4():
-    """
-    Retorna la IP pública IPv4 consultando un servicio externo.
-    """
     try:
-        output = subprocess.check_output("curl -4s https://api64.ipify.org", shell=True, text=True)
-        match = re.match(r"\d+\.\d+\.\d+\.\d+", output)
-        return output if match else ""
+        with urllib.request.urlopen("https://api4.ipify.org", timeout=5) as response:
+            return response.read().decode("utf-8")
     except Exception:
         return ""
 
-def active_ssh_session_remote():
-    """
-    Detecta conexiones SSH salientes (cliente remoto).
-    Retorna un string con las IPs remotas separadas por comas.
-    """
+def get_ssh_connections():
+    ssh_ports = [22, 8022]
+    connections = {"has_incoming_ssh": False, "has_remote_ssh": False}
     try:
-        resultado = subprocess.run(["ss", "-tp"], capture_output=True, text=True)
-        conexiones = []
-
-        for linea in resultado.stdout.splitlines():
-            if "ssh" in linea and "ESTAB" in linea:
-                match = re.search(r'(\d+\.\d+\.\d+\.\d+):(\d+)\s+(\d+\.\d+\.\d+\.\d+):(\S+)', linea)
-                if match:
-                    ip_local, port_local, ip_remota, port_remoto = match.groups()
-                    conexiones.append({
-                        "ip_local": ip_local,
-                        "ip_remota": ip_remota,
-                        "port_remoto": port_remoto,
-                    })
-        ips_remotas = [conn["ip_remota"] for conn in conexiones]
-        return ", ".join(ips_remotas) if ips_remotas else ""
+        net_connections = psutil.net_connections(kind='inet')
+        for conn in net_connections:
+            if conn.status == 'ESTABLISHED' and conn.raddr and conn.laddr:
+                if conn.laddr.port in ssh_ports:
+                    connections["has_incoming_ssh"] = True
+                if conn.raddr.port in ssh_ports:
+                    connections["has_remote_ssh"] = True
+        return connections
     except Exception:
-        return ""
-
-
-def active_ssh_incoming_session():
-    """
-    Detecta sesiones SSH entrantes (servidor SSH).
-    Retorna un string con las IPs de los clientes SSH.
-    """
-    try:
-        output = subprocess.check_output(["ss", "-t", "state", "established", "sport", "= :ssh"], text=True)
-        conexiones = []
-        for line in output.splitlines():
-            match = re.search(r'(\d+\.\d+\.\d+\.\d+):ssh\s+(\d+\.\d+\.\d+\.\d+):\d+', line)
-            if match:
-                ip_local = match.group(1)
-                ip_remota = match.group(2)
-                conexiones.append({
-                    "ip_local": ip_local,
-                    "ip_remota": ip_remota
-                })
-        ips_remotas = [conn['ip_remota'] for conn in conexiones]
-        return ", ".join(ips_remotas) if ips_remotas else ""
-    except Exception:
-        return ""
-
-
-def boolean_ssh_active_remote():
-    """
-    Booleano que indica si hay al menos una conexión SSH saliente.
-    """
-    return bool(active_ssh_session_remote())
-
-
-def boolean_ssh_incoming_session():
-    """
-    Booleano que indica si hay al menos una sesión SSH entrante.
-    """
-    return bool(active_ssh_incoming_session())
-
-
-def detect_vpn():
-    """
-    Booleano que indica si hay VPN activa (tun0).
-    """
-    return bool(get_tun0_vpn())
-
+        return connections
 
 if __name__ == "__main__":
     try:
+        network_ips = get_network_info()
+        ssh_status = get_ssh_connections()
         result = {
-            "tun0_vpn": get_tun0_vpn(),
-            "lan_ip4": get_lan_ip4(),
-            "real_lan_ip4": get_real_lan_ip4(),
-            "lan_ip6": get_lan_ip6(),
-            "real_lan_ip6": get_real_lan_ip6(),
+            "tun0_vpn": network_ips.get("tun0_vpn"),
+            "lan_ip4": network_ips.get("lan_ip4"),
+            "lan_ip6": network_ips.get("lan_ip6"),
             "wan_ip4": get_wan_ip4(),
-            "detect_vpn": detect_vpn(),
-            "remote_ssh": active_ssh_session_remote(),
-            "incoming_ssh": active_ssh_incoming_session(),
-            "has_remote_ssh": boolean_ssh_active_remote(),
-            "has_incoming_ssh": boolean_ssh_incoming_session()
+            "detect_vpn": bool(network_ips.get("tun0_vpn")),
+            "has_remote_ssh": ssh_status.get("has_remote_ssh"),
+            "has_incoming_ssh": ssh_status.get("has_incoming_ssh")
         }
         print(json.dumps(result))
         sys.stdout.flush()
