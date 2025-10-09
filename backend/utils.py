@@ -18,26 +18,45 @@ def get_network_info():
     """
     interfaces = psutil.net_if_addrs()
     info = {
-        "tun0_vpn": "",
-        "lan_ip4": "",
-        "lan_ip6": ""
+        "lan_ip4": None,
+        "lan_ip6": None,
+        "tun0_vpn": None,
     }
     
-    if "tun0" in interfaces:
-        for addr in interfaces["tun0"]:
-            if addr.family == socket.AF_INET:
-                info ["tun0_vpn"] = addr.address
-                break
+    VIRTUAL_IFACE_PREFIXES = ('docker', 'br-', 'veth')
 
     for iface_name, addrs in interfaces.items():
-        if iface_name.startswith('lo') or iface_name == 'tun0':
+        if iface_name.startswith('lo') or iface_name.startswith(VIRTUAL_IFACE_PREFIXES):
             continue
+
+        ip4_addr, ip6_addr, mac_addr = None, None, None
         
         for addr in addrs:
-            if addr.family == socket.AF_INET and not info["lan_ip4"]:
-                info["lan_ip4"] = addr.address
-            elif addr.family == socket.AF_INET6 and not addr.address.startswith('fe80') and not info["lan_ip6"]:
-                info["lan_ip6"] = addr.address
+            if addr.family == socket.AF_INET:
+                ip4_addr = addr.address
+            elif addr.family == socket.AF_INET6 and not addr.address.startswith('fe80'):
+                ip6_addr = addr.address
+            elif addr.family == socket.AF_PACKET:
+                mac_addr = addr.address
+    
+        if  iface_name == "tun0" and ip4_addr:
+            info["tun0_vpn"] = {
+                "address": ip4_addr,
+                "interface": iface_name,
+                "mac": mac_addr or ""
+            }
+        if ip4_addr and not info["lan_ip4"] and iface_name != 'tun0':
+            info["lan_ip4"] = {
+                "address": ip4_addr, 
+                "interface": iface_name,
+                "mac": mac_addr or ""
+            }
+        if ip6_addr and not info["lan_ip6"] and iface_name != 'tun0':
+            info["lan_ip6"] = {
+                "address": ip6_addr, 
+                "interface": iface_name,
+                "mac": mac_addr or ""
+            }
     return info
 
 def get_wan_ip4():
@@ -58,9 +77,9 @@ def get_ssh_connections():
                     connections["has_incoming_ssh"] = True
                 if conn.raddr.port in ssh_ports:
                     connections["has_remote_ssh"] = True
-        return connections
     except Exception:
-        return connections
+        pass
+    return connections
 
 if __name__ == "__main__":
     try:

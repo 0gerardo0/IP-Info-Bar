@@ -6,6 +6,8 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
+const SCHEMA_ID = 'org.gnome.shell.extensions.ip-info-bar';
+
 export default class IPInfoExtension extends Extension {
     constructor(metadata) {
         super(metadata);
@@ -14,6 +16,7 @@ export default class IPInfoExtension extends Extension {
         this._currentType = 0;
         this._cache = { data: null, timestamp: 0 };
         this._cacheTTL = 20000;
+        this.settings = null;
     }
 
     _getPythonScript() {
@@ -76,10 +79,9 @@ export default class IPInfoExtension extends Extension {
                         try {
                             const json = JSON.parse(output);
                             if (json.error){
-                              console.error('[ERROR] El script de Python dvolvio un error: ${json.error}');
+                              console.error(`[ERROR] El script de Python dvolvio un error: ${json.error}`);
                               resolve(null);
                               return;
-                              
                             }
                             resolve(json);
                         } catch (parseError) {
@@ -106,55 +108,84 @@ export default class IPInfoExtension extends Extension {
 
 
     async _updateLabel() {
-        try {
-            
-            const data = await this._fetchIPDataAsync();
-            
-            if (!data) {
-                this._button.label.text = 'Error';
-                return;
-            }
+      try {
+          const data = await this._fetchIPDataAsync();
+          
+          if (!data) {
+              this._button.label.text = 'Error';
+              return;
+          }
+          const isDetailed = this.settings.get_boolean('detailed-view')
+          const labels = [];
 
-            const labels = [];
-
-            if (data.lan_ip4 && data.lan_ip4.address) {
-                labels.push(data.lan_ip4.address);
-            }
-            if (data.wan_ip4) {
-                labels.push(`WAN: ${data.wan_ip4}`);
-            }
-            if (data.lan_ip6 && data.lan_ip6.address) {
-                labels.push(`IPv6: ${data.lan_ip6.address}`);
-            }
-            if (data.tun0_vpn && data.tun0_vpn.address) {
-                labels.push(`VPN: ${data.tun0_vpn.address}`);
-            }
-
-            if (data.has_remote_ssh || data.has_incoming_ssh) {
-                if (data.has_remote_ssh && data.has_incoming_ssh) {
-                    labels.push('SSH: Múltiple');
-                } else if (data.has_remote_ssh) {
-                    labels.push('SSH: Saliente');
-                } else {
-                    labels.push('SSH: Entrante');
+          if (isDetailed) {
+              if (data.lan_ip4 && data.lan_ip4.address) {
+                labels.push(`${data.lan_ip4.interface}: ${data.lan_ip4.address}`);
+                if (data.lan_ip4.mac) {
+                  labels.push(`MAC_IP4: ${data.lan_ip4.mac}`);
                 }
-            }
-            
-            if (labels.length === 0) {
-                this._button.label.text = 'Sin conexión';
-                return;
-            }
-            
-            if (this._currentType >= labels.length) {
-                this._currentType = 0;
-            }
+              }
+              if (data.wan_ip4) {
+                labels.push(`WAN: ${data.wan_ip4}`);
+              }
+              if (data.lan_ip6 && data.lan_ip6.address) {
+                labels.push(`${data.lan_ip6.interface}: ${data.lan_ip6.address}`);
+                if (data.lan_ip6.mac) {
+                  labels.push(`MAC_IP6: ${data.lan_ip6.mac}`);
+                }
+              }
+              if (data.tun0_vpn && data.tun0_vpn.address) {
+                  labels.push(`${data.tun0_vpn.interface}: ${data.tun0_vpn.address}`);
+              }
 
-            this._button.label.text = labels[this._currentType];
+              if (data.has_remote_ssh || data.has_incoming_ssh) {
+                  if (data.has_remote_ssh && data.has_incoming_ssh) {
+                      labels.push('SSH: Múltiple');
+                  } else if (data.has_remote_ssh) {
+                      labels.push('SSH: Saliente');
+                  } else {
+                      labels.push('SSH: Entrante');
+                  }
+              }
+          } else {
+              if (data.lan_ip4 && data.lan_ip4.address) {
+                  labels.push(`IPv4: ${data.lan_ip4.address}`);
+              }
+              if (data.wan_ip4) {
+                  labels.push(`WAN: ${data.wan_ip4}`);
+              }
+              if (data.lan_ip6 && data.lan_ip6.address) {
+                  labels.push(`IPv6: ${data.lan_ip6.address}`);
+              }
+              if (data.tun0_vpn && data.tun0_vpn.address) {
+                  labels.push(`VPN: ${data.tun0_vpn.address}`);
+              }
+              if (data.has_remote_ssh || data.has_incoming_ssh) {
+                  if (data.has_remote_ssh && data.has_incoming_ssh) {
+                      labels.push('SSH: Múltiple');
+                  } else if (data.has_remote_ssh) {
+                      labels.push('SSH: Saliente');
+                  } else {
+                      labels.push('SSH: Entrante');
+                  }
+              }
+          }         
 
-        } catch (e) {
-            console.error(`[IP-Info-Bar] Error al actualizar la etiqueta: ${e}`);
-            this._button.label.text = 'Error!';
-        }
+          if (labels.length === 0) {
+              this._button.label.text = 'Sin conexión';
+              return;
+          }
+          
+          if (this._currentType >= labels.length) {
+              this._currentType = 0;
+          }
+
+          this._button.label.text = labels[this._currentType];
+
+      } catch (e) {
+          console.error(`[IP-Info-Bar] Error al actualizar la etiqueta: ${e}`);
+          this._button.label.text = 'Error!';
+      }
     }
 
     _createButton() {
@@ -169,25 +200,39 @@ export default class IPInfoExtension extends Extension {
     }
 
     enable() {
+        
+        this.settings = this.getSettings(SCHEMA_ID);
+         
         this._button = this._createButton();
         Main.panel.addToStatusArea(this.uuid, this._button);
         
         this._button.connect('button-press-event', () => {
-          const data = this._cache.data;
-          if (data) {
-            let numModes = 0;
-            if (data.lan_ip4) numModes++;
-            if (data.wan_ip4) numModes++;
-            if (data.lan_ip6) numModes++;
-            if (data.tun0_vpn) numModes++;
-            if (data.has_remote_ssh || data.has_incoming_ssh) numModes++;
+            const data = this._cache.data;
+            if (data) {
+                const isDetailed = this.settings.get_boolean('detailed-view');
+                let numModes = 0;
 
-            if (numModes > 0) {
-              this._currentType = (this._currentType + 1) % numModes;
+                if (isDetailed) {
+                  if (data.lan_ip4 && data.lan_ip4.address) numModes += 2;
+                  if (data.wan_ip4) numModes++;
+                  if (data.lan_ip6 && data.lan_ip6.address) {
+                    numModes++;
+                    if (data.lan_ip6.mac) numModes++;
+                }
+                  if (data.tun0_vpn && data.tun0_vpn.address) numModes++;
+            } else {
+                if (data.lan_ip4 && data.lan_ip4.address) numModes++;
+                if (data.wan_ip4) numModes++;
+                if (data.lan_ip6 && data.lan_ip6.address) numModes++;
+                if (data.tun0_vpn && data.tun0_vpn.address) numModes++;
+              }
+              if (data.has_remote_ssh || data.has_incoming_ssh) numModes++;
+              if (numModes > 0) {
+                this._currentType = (this._currentType + 1) % numModes;
+              }
             }
-          }
-          this._updateLabel();
-        });
+            this._updateLabel();
+        });        
         
         this._timeoutId = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,
@@ -211,4 +256,4 @@ export default class IPInfoExtension extends Extension {
             this._button = null;
         }
     }
-}
+  }
