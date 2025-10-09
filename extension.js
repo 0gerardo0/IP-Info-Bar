@@ -10,13 +10,14 @@ const SCHEMA_ID = 'org.gnome.shell.extensions.ip-info-bar';
 
 export default class IPInfoExtension extends Extension {
     constructor(metadata) {
-        super(metadata);
-        this._button = null;
-        this._timeoutId = null;
-        this._currentType = 0;
-        this._cache = { data: null, timestamp: 0 };
-        this._cacheTTL = 20000;
-        this.settings = null;
+      super(metadata);
+      this._button = null;
+      this._timeoutId = null;
+      this._currentType = 0;
+      this._cache = { data: null, timestamp: 0 };
+      this._cacheTTL = 20000;
+      this.settings = null;
+      this._availableLabels = [];
     }
 
     _getPythonScript() {
@@ -112,79 +113,74 @@ export default class IPInfoExtension extends Extension {
           const data = await this._fetchIPDataAsync();
           
           if (!data) {
-              this._button.label.text = 'Error';
-              return;
+            this._button.label.text = 'Error';
+            this._availableLabels = [];
+            return;
           }
           const isDetailed = this.settings.get_boolean('detailed-view')
           const labels = [];
 
           if (isDetailed) {
-              if (data.lan_ip4 && data.lan_ip4.address) {
-                labels.push(`${data.lan_ip4.interface}: ${data.lan_ip4.address}`);
-                if (data.lan_ip4.mac) {
-                  labels.push(`MAC_IP4: ${data.lan_ip4.mac}`);
-                }
+            if (data.lan_ip4 && data.lan_ip4.address) {
+              labels.push(`${data.lan_ip4.interface}: ${data.lan_ip4.address}`);
+              if (data.lan_ip4.mac) {
+                labels.push(`MAC_IP4: ${data.lan_ip4.mac}`);
               }
-              if (data.wan_ip4) {
-                labels.push(`WAN: ${data.wan_ip4}`);
+            }
+            if (data.wan_ip4) {
+              labels.push(`WAN: ${data.wan_ip4}`);
+            }
+            if (data.lan_ip6 && data.lan_ip6.address) {
+              labels.push(`${data.lan_ip6.interface}: ${data.lan_ip6.address}`);
+              if (data.lan_ip6.mac) {
+                labels.push(`MAC_IP6: ${data.lan_ip6.mac}`);
               }
-              if (data.lan_ip6 && data.lan_ip6.address) {
-                labels.push(`${data.lan_ip6.interface}: ${data.lan_ip6.address}`);
-                if (data.lan_ip6.mac) {
-                  labels.push(`MAC_IP6: ${data.lan_ip6.mac}`);
-                }
-              }
-              if (data.tun0_vpn && data.tun0_vpn.address) {
-                  labels.push(`${data.tun0_vpn.interface}: ${data.tun0_vpn.address}`);
-              }
-
-              if (data.has_remote_ssh || data.has_incoming_ssh) {
-                  if (data.has_remote_ssh && data.has_incoming_ssh) {
-                      labels.push('SSH: Múltiple');
-                  } else if (data.has_remote_ssh) {
-                      labels.push('SSH: Saliente');
-                  } else {
-                      labels.push('SSH: Entrante');
-                  }
-              }
+            }
+            if (data.tun0_vpn && data.tun0_vpn.address) {
+                labels.push(`${data.tun0_vpn.interface}: ${data.tun0_vpn.address}`);
+            }
           } else {
-              if (data.lan_ip4 && data.lan_ip4.address) {
-                  labels.push(`IPv4: ${data.lan_ip4.address}`);
-              }
-              if (data.wan_ip4) {
-                  labels.push(`WAN: ${data.wan_ip4}`);
-              }
-              if (data.lan_ip6 && data.lan_ip6.address) {
-                  labels.push(`IPv6: ${data.lan_ip6.address}`);
-              }
-              if (data.tun0_vpn && data.tun0_vpn.address) {
-                  labels.push(`VPN: ${data.tun0_vpn.address}`);
-              }
-              if (data.has_remote_ssh || data.has_incoming_ssh) {
-                  if (data.has_remote_ssh && data.has_incoming_ssh) {
-                      labels.push('SSH: Múltiple');
-                  } else if (data.has_remote_ssh) {
-                      labels.push('SSH: Saliente');
-                  } else {
-                      labels.push('SSH: Entrante');
-                  }
-              }
-          }         
+            if (data.lan_ip4 && data.lan_ip4.address) {
+                labels.push(`IPv4: ${data.lan_ip4.address}`);
+            }
+            if (data.wan_ip4) {
+                labels.push(`WAN: ${data.wan_ip4}`);
+            }
+            if (data.lan_ip6 && data.lan_ip6.address) {
+                labels.push(`IPv6: ${data.lan_ip6.address}`);
+            }
+            if (data.tun0_vpn && data.tun0_vpn.address) {
+                labels.push(`VPN: ${data.tun0_vpn.address}`);
+            }
+          }
+          if (data.has_remote_ssh || data.has_incoming_ssh) {
+            if (data.has_remote_ssh && data.has_incoming_ssh) {
+              labels.push('SSH: Múltiple');
+            } else if (data.has_remote_ssh) {
+              labels.push('SSH: Saliente');
+            } else {
+              labels.push('SSH: Entrante');
+            }
+          }
+          
+          this._availableLabels = labels;
+
 
           if (labels.length === 0) {
               this._button.label.text = 'Sin conexión';
               return;
           }
           
-          if (this._currentType >= labels.length) {
+          if (this._currentType >= this._availableLabels.length) {
               this._currentType = 0;
           }
 
-          this._button.label.text = labels[this._currentType];
+          this._button.label.text = this._availableLabels[this._currentType];
 
       } catch (e) {
           console.error(`[IP-Info-Bar] Error al actualizar la etiqueta: ${e}`);
           this._button.label.text = 'Error!';
+          this._availableLabels = [];
       }
     }
 
@@ -207,31 +203,11 @@ export default class IPInfoExtension extends Extension {
         Main.panel.addToStatusArea(this.uuid, this._button);
         
         this._button.connect('button-press-event', () => {
-            const data = this._cache.data;
-            if (data) {
-                const isDetailed = this.settings.get_boolean('detailed-view');
-                let numModes = 0;
-
-                if (isDetailed) {
-                  if (data.lan_ip4 && data.lan_ip4.address) numModes += 2;
-                  if (data.wan_ip4) numModes++;
-                  if (data.lan_ip6 && data.lan_ip6.address) {
-                    numModes++;
-                    if (data.lan_ip6.mac) numModes++;
-                }
-                  if (data.tun0_vpn && data.tun0_vpn.address) numModes++;
-            } else {
-                if (data.lan_ip4 && data.lan_ip4.address) numModes++;
-                if (data.wan_ip4) numModes++;
-                if (data.lan_ip6 && data.lan_ip6.address) numModes++;
-                if (data.tun0_vpn && data.tun0_vpn.address) numModes++;
-              }
-              if (data.has_remote_ssh || data.has_incoming_ssh) numModes++;
-              if (numModes > 0) {
-                this._currentType = (this._currentType + 1) % numModes;
-              }
-            }
-            this._updateLabel();
+          if (this._availableLabels.length === 0){
+            return;
+          }
+          this._currentType = (this._currentType +1) % this._availableLabels.length;
+          this._button.label.text = this._availableLabels[this._currentType];
         });        
         
         this._timeoutId = GLib.timeout_add_seconds(
