@@ -33,10 +33,18 @@ Una extensión de GNOME Shell diseñada para desarrolladores, administradores de
 
 Modo Simple mostrando la IP LAN y el indicador de SSH activo.
 
+![Vista de IPv4 en shell](assets/img/IPv4-view.png)
+---
+![Vista de indicador SSH activo](assets/img/SSH_boole-view.png) 
 Modo Detallado mostrando la interfaz de red y la dirección MAC.
+
+![Vista Detallada de interfaz de red](assets/img/IPv4_Detail-view.png)
+---
+![Vista Detallada de la dirección MAC](assets/img/MAC_Detail-view.png)
 
 Ventana de configuración para alternar entre los modos de visualización.
 
+![Vista de ventana de configuración](assets/img/Config-view.png) 
 ---
 
 ## Instalación 
