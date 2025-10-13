@@ -5,7 +5,8 @@ schemas/gschemas.compiled
 *.swp
 *.log
 *.lock
-
+locale/
+*.mo
 # Archivos personales o del sistema
 .DS_Store
 Thumbs.db
