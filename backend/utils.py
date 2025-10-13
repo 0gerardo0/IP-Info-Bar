@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lib'))
 try:
     import psutil
 except ImportError:
-    print(json.dumps({"error": "La libreria psutilno fue encontrada."}))
+    print(json.dumps({"error": "La libreria psutil no fue encontrada."}))
     sys.exit(1)
 
 def get_network_info():

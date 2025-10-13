@@ -19,8 +19,6 @@ package-lock.json
 
 # Python
 __pycache__/
-*.py[cod]
-*.so
 *.egg
 *.egg-info/
 dist/
