@@ -2,7 +2,7 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
-import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
@@ -80,11 +80,11 @@ export default class IPInfoExtension extends Extension {
                 }
                 resolve(json);
               } catch (parseError) {
-                  console.error('[ERROR] Fallo al parsear JSON:', parseError.message);
+                  console.error(_('[ERROR] Failed parse JSON:'), parseError.message);
                   resolve(null);
               }
           } catch (readError) {
-              console.error('[ERROR] Excepción durante lectura:', readError.message);
+              console.error(_('[ERROR] Exception during read:'), readError.message);
               resolve(null);
             }
           });
@@ -96,7 +96,7 @@ export default class IPInfoExtension extends Extension {
         return data;
 
       } catch (e) {
-        console.error('[ERROR] Excepción durante _fetchIPDataAsync:', e.message);
+        console.error(_('[ERROR] Exception during _fetchIPDataAsync:'), e.message);
         return null;
       }
     }
@@ -149,11 +149,11 @@ export default class IPInfoExtension extends Extension {
         }
         if (data.has_remote_ssh || data.has_incoming_ssh) {
           if (data.has_remote_ssh && data.has_incoming_ssh) {
-            labels.push('SSH: Múltiple');
+            labels.push(_('SSH: Multiple'));
           } else if (data.has_remote_ssh) {
-            labels.push('SSH: Saliente');
+            labels.push(_('SSH: Outgoing'));
           } else {
-            labels.push('SSH: Entrante');
+            labels.push(_('SSH: Incoming'));
           }
         }
         
@@ -161,7 +161,7 @@ export default class IPInfoExtension extends Extension {
 
 
         if (labels.length === 0) {
-          this._button.label.text = 'Sin conexión';
+          this._button.label.text = _('No connection');
           return;
         }
         
@@ -172,7 +172,7 @@ export default class IPInfoExtension extends Extension {
         this._button.label.text = this._availableLabels[this._currentType];
 
       } catch (e) {
-        console.error(`[IP Info Bar] Failed to update label: ${e}`);
+        console.error(_(`[IP Info Bar] Failed to update label: ${e}`));
         this._button.label.text = 'Error!';
         this._availableLabels = [];
       }
@@ -181,7 +181,7 @@ export default class IPInfoExtension extends Extension {
     _createButton() {
       this._button = new PanelMenu.Button(0.0, 'IPInfoButton');
       const label = new St.Label({
-        text: 'Loading...',
+        text: _('Loading...'),
         y_align: Clutter.ActorAlign.CENTER,
       });
       this._button.add_child(label);

@@ -6,6 +6,7 @@
   "shell-version": ["45", "46", "47", "48"],
   "schemas": ["org.gnome.shell.extension.ip-info-bar"],
   "preferences-file": "prefs.js",
+  "gettext-domain": "ip-info-bar",
   "dependencies": ["python"],
   "author": "Gerardo",
   "js-main": "extension.js",

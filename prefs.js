@@ -2,7 +2,7 @@ import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 
-import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 const SCHEMA_ID = 'org.gnome.shell.extensions.ip-info-bar';
 
@@ -13,14 +13,14 @@ export default class IPInfoBarPreferences extends ExtensionPreferences {
         const page = new Adw.PreferencesPage();
         
         const group = new Adw.PreferencesGroup({
-            title: 'Configuración de Visualización',
-            description: 'Personaliza cómo se muestra la información en la barra.',
+            title: _('Display Settings'),
+            description: _('Customize how information is displayed in the panel.'),
         });
         page.add(group);
 
         const row = new Adw.ActionRow({
-            title: 'Activar Vista Detallada',
-            subtitle: 'Muestra la interfaz y la dirección MAC.',
+            title: _('Activate Detailed View'),
+            subtitle: _('Show the network interface and MAC address.'),
         });
         group.add(row);
 

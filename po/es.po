@@ -1,0 +1,67 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-10-11 02:45-0600\n"
+"PO-Revision-Date: 2025-10-11 MX:UTC-6\n"
+"Last-Translator: Gerardo Z <gerardozuniga0104@gmail.com>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: ../extension.js:84
+msgid "[ERROR] Failed parse JSON:"
+msgstr "[ERROR] Fracaso el parseo de JSON:"
+
+#: ../extension.js:88
+msgid "[ERROR] Exception during read:"
+msgstr "[ERROR] Excepción durante la lectura:"
+
+#: ../extension.js:100
+msgid "[ERROR] Exception during _fetchIPDataAsync:"
+msgstr "[ERROR] Excepción durante _fetchIPDataAsync:"
+
+#: ../extension.js:153
+msgid "SSH: Multiple"
+msgstr "SSH: Multiple"
+
+#: ../extension.js:155
+msgid "SSH: Outgoing"
+msgstr "SSH: Saliente"
+
+#: ../extension.js:157
+msgid "SSH: Incoming"
+msgstr "SSH: Entrante"
+
+#: ../extension.js:165
+msgid "No connection"
+msgstr "Sin conexión"
+
+#: ../extension.js:185
+msgid "Loading..."
+msgstr "Cargando..."
+
+#: ../prefs.js:16
+msgid "Display Settings"
+msgstr "Pantalla de configuración"
+
+#: ../prefs.js:17
+msgid "Customize how information is displayed in the panel."
+msgstr "Personalice cómo se muestra la información en el panel."
+
+#: ../prefs.js:22
+msgid "Activate Detailed View"
+msgstr "Activar Vista Detallada"
+
+#: ../prefs.js:23
+msgid "Show the network interface and MAC address."
+msgstr "Mostrar la interfaz de red y dirección MAC."
