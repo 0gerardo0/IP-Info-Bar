@@ -194,9 +194,18 @@ export default class IPInfoExtension extends Extension {
       this._button.menu.addMenuItem(copyMenuItem);
 
       copyMenuItem.connect('activate', () => {
+        const fullText = this._button.label.text;
+        let textToCopy = fullText;
+
+        const parts = fullText.split(': ');
+
+        if (parts.length > 1) {
+          textToCopy = parts.pop().trim();
+        }
+
         St.Clipboard.get_default().set_text(
           St.ClipboardType.CLIPBOARD,
-          this._button.label.text
+          textToCopy
         )
       });
 
