@@ -5,6 +5,7 @@ import St from 'gi://St';
 import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 const SCHEMA_ID = 'org.gnome.shell.extensions.ip-info-bar';
 
@@ -180,30 +181,60 @@ export default class IPInfoExtension extends Extension {
 
     _createButton() {
       this._button = new PanelMenu.Button(0.0, 'IPInfoButton');
+      this._button.reactive = true;
       const label = new St.Label({
         text: _('Loading...'),
         y_align: Clutter.ActorAlign.CENTER,
       });
       this._button.add_child(label);
       this._button.label = label;
+      
+      const copyMenuItem = new PopupMenu.PopupMenuItem(_('Copy'));
+
+      this._button.menu.addMenuItem(copyMenuItem);
+
+      copyMenuItem.connect('activate', () => {
+        St.Clipboard.get_default().set_text(
+          St.ClipboardType.CLIPBOARD,
+          this._button.label.text
+        )
+      });
+
       return this._button;
     }
 
     enable() {
       
       this.settings = this.getSettings(SCHEMA_ID);
-       
       this._button = this._createButton();
       Main.panel.addToStatusArea(this.uuid, this._button);
-      
-      this._button.connect('button-press-event', () => {
-        if (this._availableLabels.length === 0){
-          return;
+        
+      this._isLeftClick = false;
+
+      this._button.connect('button-press-event', (actor, event) => {
+        const btn = event.get_button();
+
+        if (btn === 1) {
+          this._isLeftClick = true;
+          if (this._availableLabels.length > 0) {
+            this._currentType = (this._currentType + 1) % this._availableLabels.length;
+            this._button.label.text = this._availableLabels[this._currentType];
+          }
+          if (this._button.menu.isOpen) {
+            this._button.menu.close();
+          }
+          return Clutter.EVENT_STOP;
         }
-        this._currentType = (this._currentType +1) % this._availableLabels.length;
-        this._button.label.text = this._availableLabels[this._currentType];
-      });        
-      
+        this._isLeftClick = false;
+        return Clutter.EVENT_PROPAGATE;
+      });
+
+      this._button.menu.connect('open-stage-changed', (menu, open) => {
+        if (open && this._isLeftClick) {
+          menu.close();
+        }
+      });
+
       this._timeoutId = GLib.timeout_add_seconds(
         GLib.PRIORITY_DEFAULT,
         15,
