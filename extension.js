@@ -9,25 +9,45 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 const SCHEMA_ID = 'org.gnome.shell.extensions.ip-info-bar';
 
+/**
+ * IP Info Bar Extension
+ * 
+ * Displays network information (LAN IPv4/IPv6, WAN IPv4, VPN, SSH status)
+ * in the GNOME Shell top panel. Information cycles on click and updates
+ * periodically by calling a Python backend script.
+ */
 export default class IPInfoExtension extends Extension {
     constructor(metadata) {
       super(metadata);
-      this._button = null;
-      this._timeoutId = null;
-      this._currentType = 0;
-      this._cache = { data: null, timestamp: 0 };
-      this._cacheTTL = 20000;
-      this.settings = null;
-      this._availableLabels = [];
+      this._button = null;                          // Panel button widget
+      this._timeoutId = null;                       // Update timer ID
+      this._currentType = 0;                        // Current label index
+      this._cache = { data: null, timestamp: 0 };   // Cached network data
+      this._cacheTTL = 20000;                       // Cache time-to-live (20 seconds)
+      this.settings = null;                         // Extension settings
+      this._availableLabels = [];                   // Array of labels to cycle through
     }
 
+    /**
+     * Gets the path to the Python backend script
+     * @returns {string} Absolute path to utils.py
+     */
     _getPythonScript() {
       const script = this.dir.get_child('backend').get_child('utils.py');
         return script.get_path();
     }
 
+    /**
+     * Fetches network data from the Python backend script
+     * 
+     * Uses caching to avoid excessive calls to the backend script.
+     * Spawns the Python script asynchronously and parses JSON output.
+     * 
+     * @returns {Promise<Object|null>} Network data object or null on error
+     */
     async _fetchIPDataAsync() {
       const now = Date.now();
+      // Return cached data if still valid
       if (this._cache.data && (now - this._cache.timestamp) < this._cacheTTL) {
           return this._cache.data;
       }
@@ -42,6 +62,7 @@ export default class IPInfoExtension extends Extension {
 
         const argv = [pythonExec, pythonPath]
 
+        // Spawn Python script asynchronously
         const [success, pid, stdinFd, stdoutFd] = GLib.spawn_async_with_pipes(
           null,
           argv,
@@ -54,6 +75,7 @@ export default class IPInfoExtension extends Extension {
           return null;
         }
 
+        // Clean up child process when it exits
         GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid, () => {
           GLib.spawn_close_pid(pid);
         });
@@ -62,6 +84,7 @@ export default class IPInfoExtension extends Extension {
           base_stream: new Gio.UnixInputStream({ fd: stdoutFd, close_fd: true }),
         });
 
+        // Read and parse JSON output from Python script
         const data = await new Promise((resolve) => {
           stdoutStream.read_line_async(GLib.PRIORITY_DEFAULT, null, (stream, res) => {
             try {
@@ -91,6 +114,7 @@ export default class IPInfoExtension extends Extension {
           });
         });
 
+        // Update cache with fresh data
         if (data) {
           this._cache = { data, timestamp: now };
         }
@@ -102,7 +126,12 @@ export default class IPInfoExtension extends Extension {
       }
     }
 
-
+    /**
+     * Updates the panel label with current network information
+     * 
+     * Fetches data from the backend and constructs appropriate labels
+     * based on the detailed-view setting. Handles simple and detailed modes.
+     */
     async _updateLabel() {
       try {
         const data = await this._fetchIPDataAsync();
@@ -112,10 +141,13 @@ export default class IPInfoExtension extends Extension {
           this._availableLabels = [];
           return;
         }
+        
         const isDetailed = this.settings.get_boolean('detailed-view')
         const labels = [];
 
+        // Build label array based on detailed view setting
         if (isDetailed) {
+          // Detailed mode: show interface names and MAC addresses
           if (data.lan_ip4 && data.lan_ip4.address) {
             labels.push(`${data.lan_ip4.interface}: ${data.lan_ip4.address}`);
             if (data.lan_ip4.mac) {
@@ -135,6 +167,7 @@ export default class IPInfoExtension extends Extension {
             labels.push(`${data.tun0_vpn.interface}: ${data.tun0_vpn.address}`);
           }
         } else {
+          // Simple mode: show only IP addresses
           if (data.lan_ip4 && data.lan_ip4.address) {
             labels.push(`IPv4: ${data.lan_ip4.address}`);
           }
@@ -148,6 +181,8 @@ export default class IPInfoExtension extends Extension {
             labels.push(`VPN: ${data.tun0_vpn.address}`);
           }
         }
+        
+        // Add SSH status indicator if connections detected
         if (data.has_remote_ssh || data.has_incoming_ssh) {
           if (data.has_remote_ssh && data.has_incoming_ssh) {
             labels.push(_('SSH: Multiple'));
@@ -166,6 +201,7 @@ export default class IPInfoExtension extends Extension {
           return;
         }
         
+        // Ensure current index is within bounds
         if (this._currentType >= this._availableLabels.length) {
           this._currentType = 0;
         }
@@ -179,6 +215,10 @@ export default class IPInfoExtension extends Extension {
       }
     }
 
+    /**
+     * Creates the panel button with label and context menu
+     * @returns {PanelMenu.Button} The created button widget
+     */
     _createButton() {
       this._button = new PanelMenu.Button(0.0, 'IPInfoButton');
       this._button.reactive = true;
@@ -189,6 +229,7 @@ export default class IPInfoExtension extends Extension {
       this._button.add_child(label);
       this._button.label = label;
       
+      // Add "Copy" menu item to copy IP address to clipboard
       const copyMenuItem = new PopupMenu.PopupMenuItem(_('Copy'));
 
       this._button.menu.addMenuItem(copyMenuItem);
@@ -197,6 +238,7 @@ export default class IPInfoExtension extends Extension {
         const fullText = this._button.label.text;
         let textToCopy = fullText;
 
+        // Extract just the IP address (after the colon)
         const parts = fullText.split(': ');
 
         if (parts.length > 1) {
@@ -212,6 +254,12 @@ export default class IPInfoExtension extends Extension {
       return this._button;
     }
 
+    /**
+     * Enables the extension
+     * 
+     * Creates the panel button, sets up click handlers for cycling through
+     * labels, and starts the periodic update timer (every 15 seconds).
+     */
     enable() {
       
       this.settings = this.getSettings(SCHEMA_ID);
@@ -220,6 +268,7 @@ export default class IPInfoExtension extends Extension {
         
       this._isLeftClick = false;
 
+      // Left-click cycles through available labels
       this._button.connect('button-press-event', (actor, event) => {
         const btn = event.get_button();
 
@@ -229,6 +278,7 @@ export default class IPInfoExtension extends Extension {
             this._currentType = (this._currentType + 1) % this._availableLabels.length;
             this._button.label.text = this._availableLabels[this._currentType];
           }
+          // Close menu if open (left-click should only cycle, not open menu)
           if (this._button.menu.isOpen) {
             this._button.menu.close();
           }
@@ -238,12 +288,14 @@ export default class IPInfoExtension extends Extension {
         return Clutter.EVENT_PROPAGATE;
       });
 
+      // Prevent menu from opening on left-click
       this._button.menu.connect('open-stage-changed', (menu, open) => {
         if (open && this._isLeftClick) {
           menu.close();
         }
       });
 
+      // Update label every 15 seconds
       this._timeoutId = GLib.timeout_add_seconds(
         GLib.PRIORITY_DEFAULT,
         15,
@@ -253,9 +305,15 @@ export default class IPInfoExtension extends Extension {
         }
       );
 
+      // Initial update
       this._updateLabel();
     }
 
+    /**
+     * Disables the extension
+     * 
+     * Removes the update timer and destroys the panel button.
+     */
     disable() {
       if (this._timeoutId) {
         GLib.source_remove(this._timeoutId);
