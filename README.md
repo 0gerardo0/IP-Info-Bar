@@ -4,20 +4,20 @@
 ![GNOME Shell](https://img.shields.io/badge/GNOME-45+-important)
 ![Status](https://img.shields.io/badge/status-alpha-orange)
 
-Una extensión de GNOME Shell diseñada para desarrolladores, administradores de sistemas y entusiastas de redes que necesitan visivilidad inmediata de su estado de conectividad. Muestra información de red critica directamente en la barra superior, y permite alternar entre multiples detalles con un solo clic.
+Una extensión de GNOME Shell diseñada para desarrolladores, administradores de sistemas y entusiastas de redes que necesitan visibilidad inmediata de su estado de conectividad. Muestra información de red crítica directamente en la barra superior, y permite alternar entre múltiples detalles con un solo clic.
 
 ---
 
 ## Características
 
-* **Múltiples Cistas de IP:** Rotafacilmente entre tu IP de LAN (IPv4), IP publica (WAN), IPv6 y la IP de tu túnel VPN (`tun0`).
-* **Detección de SSH Inteligente:** Un indicador aparece automáticamente en el ciclo de visialización **solo si** hay una conexion SSH activa (entrante o saliente), manteniendose oculto en caso contrario.
+* **Múltiples Vistas de IP:** Rota fácilmente entre tu IP de LAN (IPv4), IP pública (WAN), IPv6 y la IP de tu túnel VPN (`tun0`).
+* **Detección de SSH Inteligente:** Un indicador aparece automáticamente en el ciclo de visualización **solo si** hay una conexión SSH activa (entrante o saliente), manteniéndose oculto en caso contrario.
 
-* **Dos modo de Visualización:**
-    * **Vista Simple:** Muestra unicamente la direción IP para una apariencia limpia.
+* **Dos modos de Visualización:**
+    * **Vista Simple:** Muestra únicamente la dirección IP para una apariencia limpia.
     * **Vista Detallada:** Muestra información extendida como el nombre de la interfaz de red (`enp2s0`, `wlo1`) y la dirección MAC.
 
-* **Configurable:** Activa la "Vista Detallada" facilmente desde el panel de configuración de la extensión.
+* **Configurable:** Activa la "Vista Detallada" fácilmente desde el panel de configuración de la extensión.
 
 * **Backend Robusto:** Utiliza un script de Python con psutil para obtener información del sistema de manera eficiente y fiable, sin depender de comandos de shell frágiles. 
 
@@ -54,7 +54,7 @@ Ventana de configuración para alternar entre los modos de visualización.
 > [!NOTE]
 > Próximamente...
 
-**Instalación desde el Codigo Fuente(Para Desarrollo)
+**Instalación desde el Código Fuente (Para Desarrollo)**
 
 1. Clona el repositorio en la carpeta de extensiones.
     ```bash
@@ -65,7 +65,7 @@ Ventana de configuración para alternar entre los modos de visualización.
     cp ~/.local/share/gnome-shell/extensions/ip-info-bar@gerardo.github.io/schemas/org.gnome.shell.extensions.ip-info-bar.gschema.xml ~/.local/share/glib-2.0/schemas/
     glib-compile-schemas ~/.local/share/glib-2.0/schemas/
     ```
-3. Reinicia GNOME Shell(`Alt+F2`, escribe r, y presiona `Enter` en X11) o cierra y vuelve a iniciar sesión en Wayland.
+3. Reinicia GNOME Shell (`Alt+F2`, escribe r, y presiona `Enter` en X11) o cierra y vuelve a iniciar sesión en Wayland.
 
 4. **Activar la Extension** con el siguiente comando:
     ```bash
@@ -82,9 +82,9 @@ Para probar cambios en la extensión, especialmente en Wayland, no es necesario 
     ```bash
     MUTTER_VIRTUAL_MONITOR=1280x720 dbus-run-session -- gnome-shell --nested --wayland
     ```
-2. **Activar y Probar:** Dentro de la ventana anidada, abre una terminal y activa la extensión como se describe en el paso 4 de la instalación. Cualquier cambio que hagas en el codigo se reflejara la proxima vez que lances esta sesión anidada.
+2. **Activar y Probar:** Dentro de la ventana anidada, abre una terminal y activa la extensión como se describe en el paso 4 de la instalación. Cualquier cambio que hagas en el código se reflejará la próxima vez que lances esta sesión anidada.
 
-3. **Ver Logs:** Para ver los mensajes de `console.log` o errores, ejecuta con este comando en nuna terminal de tu sesión principal:
+3. **Ver Logs:** Para ver los mensajes de `console.log` o errores, ejecuta este comando en una terminal de tu sesión principal:
     ```bash
     journalctl -f -o cat /usr/bin/gnome-shell
     ```
