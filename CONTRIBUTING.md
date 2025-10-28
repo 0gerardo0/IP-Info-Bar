@@ -36,12 +36,14 @@ Para sugerir nuevas características o mejoras:
 
 ### JavaScript
 
-- Usa indentación de 2 espacios para bloques anidados
-- Métodos de clase usan 4 espacios de indentación base
+- La indentación sigue el patrón establecido en el código existente:
+  - Métodos de clase usan 4 espacios de indentación base
+  - Código dentro de métodos usa 2 espacios adicionales (total 6 espacios desde el margen)
+  - Bloques anidados añaden 2 espacios por nivel
 - Sigue las convenciones de nomenclatura de GJS/GNOME Shell
 - Añade comentarios JSDoc para funciones públicas
 - Maneja errores apropiadamente
-- Mantén consistencia con el estilo existente del código
+- **Importante:** Mantén consistencia con el estilo existente del código
 
 ### Python
 
@@ -60,7 +62,7 @@ Para sugerir nuevas características o mejoras:
 
 Antes de enviar un PR, asegúrate de:
 
-1. Probar la extensión en GNOME Shell (versiones soportadas: 45, 46, 47, 48 - verifica `metadata.json`)
+1. Probar la extensión en GNOME Shell (verifica que tu versión esté incluida en el array `shell-version` de `metadata.json` - actualmente: 45, 46, 47, 48)
 2. Verificar que no hay errores en los logs
 3. Comprobar que todas las funcionalidades existentes siguen funcionando
 4. Probar en modo simple y detallado
