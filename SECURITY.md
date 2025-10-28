@@ -34,7 +34,14 @@ Esta extensión accede a:
 
 ### Conexiones de Red
 
-La extensión realiza una solicitud HTTPS a `api4.ipify.org` para obtener tu dirección IP pública. Esta es una API confiable y ampliamente utilizada, pero ten en cuenta que se realiza una conexión externa.
+La extensión realiza una solicitud HTTPS a `https://api4.ipify.org` para obtener tu dirección IP pública. 
+
+- **Servicio utilizado:** [ipify](https://www.ipify.org/) - Un servicio público y gratuito para obtener direcciones IP
+- **Datos enviados:** Solo una solicitud HTTP GET sin datos personales
+- **Datos recibidos:** Tu dirección IP pública (que es información que cualquier sitio web puede ver)
+- **Privacidad:** ipify no almacena logs ni realiza seguimiento ([política de privacidad](https://www.ipify.org/))
+
+Ten en cuenta que se realiza esta conexión externa cada vez que se actualiza la información (cada 15 segundos, con caché de 20 segundos).
 
 ### Permisos
 
