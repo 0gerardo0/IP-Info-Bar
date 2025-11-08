@@ -7,6 +7,7 @@ schemas/gschemas.compiled
 *.lock
 locale/
 *.mo
+*.sh
 # Archivos personales o del sistema
 .DS_Store
 Thumbs.db
