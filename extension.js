@@ -12,13 +12,17 @@ const SCHEMA_ID = 'org.gnome.shell.extensions.ip-info-bar';
 export default class IPInfoExtension extends Extension {
     constructor(metadata) {
       super(metadata);
-      this._button = null;
+      this._indicator = null;
       this._timeoutId = null;
       this._currentType = 0;
       this._cache = { data: null, timestamp: 0 };
       this._cacheTTL = 20000;
       this.settings = null;
       this._availableLabels = [];
+
+      this._buttonPressEventId = null;
+      this._menuOpenStateEventId = null;
+      this._isLeftClick = false;
     }
 
     _getPythonScript() {
@@ -106,12 +110,21 @@ export default class IPInfoExtension extends Extension {
     async _updateLabel() {
       try {
         const data = await this._fetchIPDataAsync();
+
+        if(!this._indicator){
+          return;
+        }
         
         if (!data) {
-          this._button.label.text = 'Error';
+          this._indicator.label.text = 'Error';
           this._availableLabels = [];
           return;
         }
+
+        if (!this.settings){
+          return;
+        }
+
         const isDetailed = this.settings.get_boolean('detailed-view')
         const labels = [];
 
@@ -162,7 +175,7 @@ export default class IPInfoExtension extends Extension {
 
 
         if (labels.length === 0) {
-          this._button.label.text = _('No connection');
+          this._indicator.label.text = _('No connection');
           return;
         }
         
@@ -170,31 +183,31 @@ export default class IPInfoExtension extends Extension {
           this._currentType = 0;
         }
 
-        this._button.label.text = this._availableLabels[this._currentType];
+        this._indicator.label.text = this._availableLabels[this._currentType];
 
       } catch (e) {
         console.error(_(`[IP Info Bar] Failed to update label: ${e}`));
-        this._button.label.text = 'Error!';
+        this._indicator.label.text = 'Error!';
         this._availableLabels = [];
       }
     }
 
     _createButton() {
-      this._button = new PanelMenu.Button(0.0, 'IPInfoButton');
-      this._button.reactive = true;
+      this._indicator = new PanelMenu.Button(0.0, 'IPInfoButton');
+      this._indicator.reactive = true;
       const label = new St.Label({
         text: _('Loading...'),
         y_align: Clutter.ActorAlign.CENTER,
       });
-      this._button.add_child(label);
-      this._button.label = label;
+      this._indicator.add_child(label);
+      this._indicator.label = label;
       
       const copyMenuItem = new PopupMenu.PopupMenuItem(_('Copy'));
 
-      this._button.menu.addMenuItem(copyMenuItem);
+      this._indicator.menu.addMenuItem(copyMenuItem);
 
       copyMenuItem.connect('activate', () => {
-        const fullText = this._button.label.text;
+        const fullText = this._indicator.label.text;
         let textToCopy = fullText;
 
         const parts = fullText.split(': ');
@@ -209,28 +222,26 @@ export default class IPInfoExtension extends Extension {
         )
       });
 
-      return this._button;
+      return this._indicator;
     }
 
     enable() {
       
       this.settings = this.getSettings(SCHEMA_ID);
-      this._button = this._createButton();
-      Main.panel.addToStatusArea(this.uuid, this._button);
+      this._indicator = this._createButton();
+      Main.panel.addToStatusArea(this.uuid, this._indicator);
         
-      this._isLeftClick = false;
-
-      this._button.connect('button-press-event', (actor, event) => {
-        const btn = event.get_button();
+      this._buttonPressEventId = this._indicator.connect('button-press-event', (actor, event) => {
+        const btn = event.get_indicator();
 
         if (btn === 1) {
           this._isLeftClick = true;
-          if (this._availableLabels.length > 0) {
+          if (this._availableLabels.length > 0 && this._availableLabels.length > 0) {
             this._currentType = (this._currentType + 1) % this._availableLabels.length;
-            this._button.label.text = this._availableLabels[this._currentType];
+            this._indicator.label.text = this._availableLabels[this._currentType];
           }
-          if (this._button.menu.isOpen) {
-            this._button.menu.close();
+          if (this._indicator.menu.isOpen) {
+            this._indicator.menu.close();
           }
           return Clutter.EVENT_STOP;
         }
@@ -238,7 +249,7 @@ export default class IPInfoExtension extends Extension {
         return Clutter.EVENT_PROPAGATE;
       });
 
-      this._button.menu.connect('open-stage-changed', (menu, open) => {
+      this._menuOpenStateEventId = this._indicator.menu.connect('open-stage-changed', (menu, open) => {
         if (open && this._isLeftClick) {
           menu.close();
         }
@@ -261,9 +272,24 @@ export default class IPInfoExtension extends Extension {
         GLib.source_remove(this._timeoutId);
         this._timeoutId = null;
       }
-      if (this._button) {
-        this._button.destroy();
-        this._button = null;
+
+      if (this._indicator) {
+        if (this._buttonPressEventId) {
+          this._indicator.disconnect(this._buttonPressEventId);
+          this._buttonPressEventId = null;
+        }
+        if (this._menuOpenStateEventId) {
+          this._indicator.menu.disconnect(this._menuOpenStateEventId);
+          this._menuOpenStateEventId = null;
+        }
       }
+
+      this._indicator?.destroy();
+      this._indicator = null;
+
+      this.settings = null;
+      this._availableLabels = null;
+      this._cache = null;
+      this._isLeftClick = false;
     }
   }
